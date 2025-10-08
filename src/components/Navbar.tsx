@@ -5,7 +5,7 @@ import UnitDropdown from "./UnitDropdown";
 export default function Navbar() {
     return (
         <section
-            className="w-full flex items-center justify-between mb-5"
+            className="w-full flex items-center justify-between mb-15"
         >
             <div
                 className="flex items-center space-x-2.5"

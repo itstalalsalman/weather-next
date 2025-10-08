@@ -11,8 +11,10 @@ type WeatherData = any; // you can define a stricter type
 
 type WeatherStore = {
   units: UnitSettings;
+  name: string | null;
   weather: WeatherData | null;
   setUnits: (units: Partial<UnitSettings>) => void;
+  setName: (name: string | null) => void;
   fetchWeather: (city: string) => Promise<void>;
 };
 
@@ -23,6 +25,10 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
     precipitation: "mm",
   },
   weather: null,
+
+  name: null,
+
+  setName: (name) => set({ name }),
 
   setUnits: (units) =>
     set((state) => ({
@@ -40,9 +46,13 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
         console.error("City not found");
         return;
       }
+      console.log("Geocoding result:", geoRes.data);
 
       const { latitude, longitude } = geoRes.data.results[0];
-
+      const { admin1, country } = geoRes.data.results[0];
+      const cityName = `${admin1}, ${country}`;
+      set({ name: cityName });
+      
       // 2. Read units from store
       const { units } = get();
       const tempUnit = units.temperature === "celsius" ? "celsius" : "fahrenheit";
@@ -56,6 +66,9 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
           params: {
             latitude,
             longitude,
+            hourly: "temperature_2m,precipitation,weathercode,windspeed_10m",
+            daily: "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode",
+            forecast_days: 7,
             current_weather: true,
             temperature_unit: tempUnit,
             windspeed_unit: windUnit,
@@ -63,7 +76,7 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
           },
         }
       );
-
+      console.log("Weather result:", weatherRes.data);
       set({ weather: weatherRes.data });
     } catch (err) {
       console.error("Error fetching weather:", err);

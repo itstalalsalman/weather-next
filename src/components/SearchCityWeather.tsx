@@ -11,6 +11,7 @@ export default function SearchCityWeather() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query) return;
+    console.log("Searching for:", query);
     fetchWeather(query);
   };
 
@@ -19,7 +20,7 @@ export default function SearchCityWeather() {
       onSubmit={handleSearch}
       className="flex w-150 items-center justify-between gap-5 overflow-hidden"
     >
-      <div className="w-[80%] flex items-center justify-start gap-2.5 rounded-md text-gray-400 bg-neutral-800 px-5">
+      <div className="w-[80%] flex items-center justify-start gap-2.5 rounded-lg text-gray-400 bg-neutral-800 px-5">
         <Search className="w-5 h-5" />
         <input
             type="text"
@@ -31,7 +32,7 @@ export default function SearchCityWeather() {
       </div>
       <button
         type="submit"
-        className="px-5 py-2.5 bg-blue-500 hover:bg-blue-700 rounded-md text-white font-medium cursor-pointer"
+        className="px-5 py-2.5 bg-blue-500 hover:bg-blue-700 rounded-lg text-white font-medium cursor-pointer"
       >
         Search
       </button>

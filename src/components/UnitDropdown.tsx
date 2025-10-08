@@ -15,7 +15,7 @@ export default function UnitDropdown() {
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-2 bg-neutral-800 px-3 py-2 rounded-md text-white hover:bg-neutral-700"
+        className="flex items-center gap-2 bg-neutral-800 px-3 py-2 rounded-lg text-white hover:bg-neutral-700"
       >
         <Settings className="w-4 h-4" />
         Units
