@@ -13,9 +13,14 @@ type WeatherStore = {
   units: UnitSettings;
   name: string | null;
   weather: WeatherData | null;
+  loading: boolean;
+  error: string | null;
+
+
   setUnits: (units: Partial<UnitSettings>) => void;
   setName: (name: string | null) => void;
   fetchWeather: (city: string) => Promise<void>;
+  fetchWeatherByCoords: (lat: number, lon: number) => Promise<void>;
 };
 
 export const useWeatherStore = create<WeatherStore>((set, get) => ({
@@ -24,10 +29,13 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
     wind: "kmh",
     precipitation: "mm",
   },
+
   weather: null,
-
   name: null,
+  loading: false,
+  error: null,
 
+  
   setName: (name) => set({ name }),
 
   setUnits: (units) =>
@@ -37,49 +45,69 @@ export const useWeatherStore = create<WeatherStore>((set, get) => ({
 
   fetchWeather: async (city: string) => {
     try {
-      // 1. Geocoding API call
-      const geoRes = await axios.get(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`
-      );
+      set({ loading: true, error: null });
+      
+      const geoRes = await axios.get(`/api/geocode`, {
+        params: { name: city },
+      });
 
-      if (!geoRes.data.results || geoRes.data.results.length === 0) {
-        console.error("City not found");
-        return;
+      if (!geoRes.data.results?.length) {
+        throw new Error("City not found");
       }
-      console.log("Geocoding result:", geoRes.data);
 
       const { latitude, longitude } = geoRes.data.results[0];
-      const { admin1, country } = geoRes.data.results[0];
-      const cityName = `${admin1}, ${country}`;
-      set({ name: cityName });
-      
-      // 2. Read units from store
-      const { units } = get();
-      const tempUnit = units.temperature === "celsius" ? "celsius" : "fahrenheit";
-      const windUnit = units.wind === "kmh" ? "kmh" : "mph";
-      const precUnit = units.precipitation === "mm" ? "mm" : "inch";
+      const reverseRes = await axios.get(`/api/reverse-geocode`, {
+        params: { latitude, longitude },
+      });
 
-      // 3. Weather API call
-      const weatherRes = await axios.get(
-        `https://api.open-meteo.com/v1/forecast`,
-        {
-          params: {
-            latitude,
-            longitude,
-            hourly: "temperature_2m,precipitation,weathercode,windspeed_10m",
-            daily: "temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode",
-            forecast_days: 7,
-            current_weather: true,
-            temperature_unit: tempUnit,
-            windspeed_unit: windUnit,
-            precipitation_unit: precUnit,
-          },
-        }
-      );
-      console.log("Weather result:", weatherRes.data);
-      set({ weather: weatherRes.data });
+      let locationName = null;
+      if (reverseRes.data) {
+        const { city, country } = reverseRes.data;
+        console.log("Reverse geocoding location:", { city, country });
+        locationName = `${city}, ${country}`;
+        set({ name: locationName });
+      } 
+      
+      await get().fetchWeatherByCoords(latitude, longitude);
+
     } catch (err) {
       console.error("Error fetching weather:", err);
+    }
+  },
+
+  fetchWeatherByCoords: async (lat: number, lon: number) => {
+    try {
+      set({ loading: true, error: null });
+
+      // 🔸 Reverse geocode to get readable city name
+      const reverseRes = await axios.get(`/api/reverse-geocode`, {
+        params: { latitude: lat, longitude: lon },
+      });
+
+      let locationName = null;
+      if (reverseRes.data) {
+        const { city, country } = reverseRes.data;
+        console.log("Reverse geocoding location:", { city, country });
+        locationName = `${city}, ${country}`;
+        set({ name: locationName });
+      }
+
+      // 🔸 Now fetch actual weather
+      const { units } = get();
+      const res = await axios.get(`/api/weather`, {
+        params: {
+          latitude: lat,
+          longitude: lon,
+          temperature_unit: units.temperature,
+          windspeed_unit: units.wind,
+          precipitation_unit: units.precipitation === "in" ? "inch" : "mm",
+        },
+      });
+      
+      console.log("Fetched weather data:", res.data);
+      set({ weather: res.data, loading: false });
+    } catch (err: any) {
+      set({ error: err.message || "Failed to fetch weather", loading: false });
     }
   },
 }));

@@ -3,10 +3,30 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useWeatherStore } from "@/lib/store";
+import { useEffect } from "react";
 
 export default function MainWeatherInfoTile() {
 
-    const { name, weather } = useWeatherStore();
+    const { name, weather,  fetchWeatherByCoords, fetchWeather } = useWeatherStore();
+    
+    useEffect(() => {
+        // Option 1: Use user's current location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
+            },
+            (err) => {
+              console.warn("Geolocation failed:", err);
+              // Option 2: Fallback to default city
+              fetchWeather("Ankara");
+            }
+          );
+        } else {
+          fetchWeather("Ankara"); // fallback default
+        }
+    }, [fetchWeather, fetchWeatherByCoords]);
+
     const today = new Date();
     const options: Intl.DateTimeFormatOptions = {
         weekday: "long", 
@@ -32,7 +52,7 @@ export default function MainWeatherInfoTile() {
             height={120}
             alt="Current Weather Icon"
         />
-        <h1 className="text-8xl text-neutral-0 font-semibold italic text-center -mt-4">{weather?.current_weather.temperature}&deg;</h1>
+        <h1 className="text-8xl text-neutral-0 font-semibold italic text-center -mt-4">{Math.round(weather?.current.temperature)}&deg;</h1>
       </div>
       
       {/* 🌟 Animated Stars */}
